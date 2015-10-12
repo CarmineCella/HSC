@@ -1,0 +1,136 @@
+%% Hierarchical spectral clustering
+
+\documentclass[twoside]{article}
+
+\usepackage[sc]{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\linespread{1.05} % Line spacing - Palatino needs more space between lines
+\usepackage{microtype} % Slightly tweak font spacing for aesthetics
+
+\usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry} % Document margins
+\usepackage{multicol} % Used for the two-column layout of the document
+\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
+\usepackage{booktabs} % Horizontal rules in tables
+\usepackage{float} % Required for tables and figures in the multi-column environment - they need to be placed in specific locations with the [H] (e.g. \begin{table}[H])
+\usepackage{hyperref} % For hyperlinks in the PDF
+
+\usepackage{lettrine} % The lettrine is the first enlarged letter at the beginning of the text
+\usepackage{paralist} % Used for the compactitem environment which makes bullet points with less space between them
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{abstract} % Allows abstract customization
+\renewcommand{\abstractnamefont}{\normalfont\bfseries} % Set the "Abstract" text to bold
+\renewcommand{\abstracttextfont}{\normalfont\small\itshape} % Set the abstract itself to small italic text
+
+\usepackage{titlesec} % Allows customization of titles
+\renewcommand\thesection{\Roman{section}} % Roman numerals for the sections
+\renewcommand\thesubsection{\Roman{subsection}} % Roman numerals for subsections
+\titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsection}[block]{\large}{\thesubsection.}{1em}{} % Change the look of the section titles
+
+\usepackage{fancyhdr} % Headers and footers
+\pagestyle{fancy} % All pages have headers and footers
+\fancyhead{} % Blank out the default header
+\fancyfoot{} % Blank out the default footer
+\fancyhead[C]{Private communication $\bullet$ Do not distribute} % Custom header text
+\fancyfoot[RO,LE]{\thepage} % Custom footer text
+
+
+\title{Hierarchical spectral clustering \\ on scattering coefficients}
+\author{
+\large
+\textsc{Carmine-Emanuele Cella}\\[2mm] % Your name
+\normalsize \'Ecole normale sup\'erieure - Paris \\ % Your institution
+\normalsize \href{mailto:carmine.emanuele.cella@ens.ft}{carmine.emanuele.cella@ens.fr} % Your email address
+\vspace{-5mm}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{fancy} % All pages have headers and footers
+
+\begin{abstract}
+  In this short note we will define a method to group together several vectors of scattering coefficients that 
+  represent quasi-stationary signals at different scales. The main idea consists in embedding the scattering 
+  coefficients into a diffusion map that can be further used for clustering. This process can be done recursively 
+  by splitting in halves the input signal, thus creating a full decomposition tree up to a given order.
+\end{abstract}
+
+
+\section{Diffusion embedding}
+
+{L}et $x \in \mathbb{C}^d$ be an observation and let ${\{\Phi x\}}_{n \leq N}$ be the corresponding set of vectors of scattering coefficients of first and second order at all scales up to
+a given scale $2^J$;  the set of vectors is computed by patching $x$ at scale $2^J$, overlapping the patches by half. 
+Let $\mathcal{F}_{i,i}$ be the \emph{scattering flow} of ${\{\Phi x\}}_{n \leq N}$, a symmetric matrix whose entries are the sum of the modulus of the pairwise difference of the coefficients:
+
+\newcommand\x{\times}
+\newcommand\bigzero{\makebox(0,0){\text{\huge=}}}
+\newcommand*{\bord}{\multicolumn{1}{c|}{}}
+\begin{equation}
+\mathcal{F}_{i,i} = 
+  \left(
+    \begin{array}{ccccc}
+    \sum | \Phi x_1 - \Phi x_2 | & \x       & \x    & \x    & \sum | \Phi x_1  -  \Phi x_i |\\ \cline{1-1}
+    \bord & \x       & \x    & \x    & \x \\ \cline{2-2}
+          & \bord    & \x    & \x    & \x \\ \cline{3-3}
+          & \bigzero & \bord & \x    & \x \\ \cline{4-4}
+          &          &       & \bord & \sum |\Phi x_i - \Phi x_i | \\ \cline{5-5}
+  \end{array}\right).
+\end{equation}
+
+Let $\mathcal{A}_{i,i}$ be the adjacency matrix of $\mathcal{F}_{i, i},$ created by applying to it an affinity metric with a Gaussian kernel:
+
+\begin{equation}
+  \label{eq:adjacency}
+\mathcal{A}_{i,i} = e^{- \left( \frac{\mathcal{F}_{i,i}}{2 \sigma ^2} \right) }
+\end{equation}
+where $\sigma^2$ is the variance of the kernel which determines the scale of the affinity metric; it depends on the nature of $x$ and must be carefully set. 
+In this context we decided to set this value equal to the centroid of the histogram of  $\mathcal{F}_{i, i}$:
+
+\begin{equation}
+  \label{eq:variance}
+  \sigma = \sum_{h} {\left(\frac{h \cdot p(h)}{\sum_{h} p(h)}\right)}
+\end{equation}
+where $p(h)$ is the value of the histogram at position $h$. Let then $\mathcal{L}_{i,i}$ be the normalized \emph{Laplacian matrix} of $x$ defined as:
+
+\begin{equation}
+  \label{eq:norm_laplace}
+   \mathcal{L}_{i,i} = \mathcal{D}_{i,i}^{-1/2}  \mathcal{A}_{i,i}  \mathcal{D}_{i,i}^{-1/2}
+\end{equation}
+where $\mathcal{D}_{i,i} = \sum_j {\mathcal{A}_{i, j}}$ is the degree matrix.
+
+The matrix $\mathcal{L}_{i,j}$ is symmetric and can be decomposed in principal eigenvalues ${\{\lambda _l\}}_{\lambda \leq \Lambda}$ 
+and biorthogonal left and right eigenvectors ${\{\psi _l\}}_{\lambda \leq \Lambda}, {\{\phi _l\}}_{\lambda \leq \Lambda}$ respectively.
+
+Due to the fast decay of the eigenvalues, only a few terms are necessary to achieve a given relative accuracy in the decomposition.
+Thus, using the first two largest eigenvectors it is possible to create a $2$-dimensional space, called \emph{diffusion embedding},
+which is embedded in the original space.
+Given the low dimensionality of the this space, it is possible to apply a binary clustering to partition it into two clusters;
+the whole process (with minor variations) is often called \emph{spectral clustering}. 
+
+With labels provided by the clustering, we then created two \emph{streams} ${\{S^1_p\}}_{p \leq P}, {\{S^2_q\}}_{q \leq Q}$ by selecting the 
+corresponding elements from ${\{\Phi x\}}_{n \leq N}$. Each stream has an independent time scale but contains information that can be considered quasi-stationary. The process is then recursively applied on
+each stream thus creating a \emph{hierarchical} decomposition tree up to a given order $W$. 
+
+\section{Kernel learning and signal-dependent representations}
+\label{sec:kern_learn}
+
+Once the vectors of scattering coefficients are consistently grouped together, it is possible to estimate a representative kernel per group in several
+ways. In this context we decided to take the maximum of each vector belonging to the stream, thus creating a set of coefficients whose length depends
+on the time scale of the stream. Given the logarithmic nature of the hierarchical decomposition, the total number of kernels $ {\{f^x_k\}}_{k \leq K}$ is $K = 2^W$.
+
+By convolving each kernel with the whole original set of vectors, it is possible to create a set of \emph{feature maps} that creates a signal-dependent 
+representation of $x$:
+
+\begin{equation}
+  \label{eq:sig_dep_rep}
+  \tilde{\Phi}x = {\{ \Phi x * f^x_k\}}_{k \leq K}.
+\end{equation}
+
+\end{document}
